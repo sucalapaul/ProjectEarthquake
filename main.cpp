@@ -14,8 +14,13 @@
 #include <GL/gl.h>		   // Open Graphics Library (OpenGL) header
 #include <GL/glut.h>	   // The GL Utility Toolkit (GLUT) Header
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+using namespace std;
 
 #define KEY_ESCAPE 27
+#define PI 3.14159265358f
 
 
 
@@ -32,6 +37,23 @@ typedef struct {
 glutWindow win;
 
 const float DEG2RAD = 3.14159/180;
+float ellipseAngle = 0;
+float ellipseXRadius = 0.2;
+float ellipseYRadius = 0.1;
+float earthDisplacementX = 0;
+float increment = 0.003;
+
+float accelerogram[5000];
+float acceleration = 0;
+float velocity = 0;
+float displacement = 0;
+
+int simulationStep = 0;
+int accelerogramLength = 0;
+
+unsigned int timeInterval = 20; //ms
+unsigned int previousTime = 0;
+std::ifstream accelerogramFile("accelerograma.txt");
  
 void drawCircle(float radius)
 {
@@ -48,22 +70,34 @@ void drawCircle(float radius)
 
 void drawEllipse(float xradius, float yradius)
 {
-   glBegin(GL_LINE_LOOP);
+   glBegin(GL_POLYGON);
  
-   for (int i=0; i < 360; i++)
+   for (int i=0; i < 180; i++)
    {
       //convert degrees into radians
-      float degInRad = i*DEG2RAD;
+      float degInRad = 2*i*DEG2RAD;
       glVertex2f(cos(degInRad)*xradius,sin(degInRad)*yradius);
    }
  
    glEnd();
 }
 
+void nop()
+{
+	return;
+}
 
 
 void display() 
 {
+
+	unsigned int time = glutGet(GLUT_ELAPSED_TIME);
+	if (time < previousTime + timeInterval){
+		return;
+	}
+	previousTime = time;
+
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		     // Clear Screen and Depth Buffer
 	glLoadIdentity();
 	glTranslatef(0.0f,0.0f,-3.0f);			
@@ -73,29 +107,66 @@ void display()
 	 * 3 verteces, 3 colors.
 	 */
 
+	//ellipseAngle++;
+
+	//MOVEMENT EQUATION
+	earthDisplacementX += increment;
+	if (earthDisplacementX > 0.08 || earthDisplacementX < -0.08)
+	{
+		increment = -increment;
+	}
+
+	float ellpsePerimeter = 2*PI*sqrtf(ellipseXRadius*ellipseYRadius);
+	// Kepler
+	//$per = 2.0*$pi*sqrt($rA*$rB);
+	//$rot = -2*$pi*$x/$per;
+
+	ellipseAngle = (-2*PI*earthDisplacementX/ellpsePerimeter)/DEG2RAD;
+
+	glTranslatef(0.0f, -0.9f, 0.0f);
+
+	//earth line
 	glBegin(GL_LINES);
-		glColor3f(0.0f,0.0f,1.0f);
-		glVertex3f( 0.0f, 0.0f, 0.0f);
-		glVertex3f( 1.0f, 0.0f, 0.0f);
-		glVertex3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( 0.0f, 1.0f, 0.0f);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3f( -1.5f, 0.0f, 0.0f);
+		glVertex3f( 1.5f, 0.0f, 0.0f);
 	glEnd();
 
 
-	glBegin(GL_TRIANGLES);					
-		glColor3f(0.0f,0.0f,1.0f);			
-		glVertex3f( 0.0f, 1.0f, 0.0f);		
-		glColor3f(0.0f,1.0f,0.0f);			
-		glVertex3f(-1.0f,-1.0f, 0.0f);		
-		//glColor3f(1.0f,0.0f,0.0f);			
-		//glVertex3f( 1.0f,-1.0f, 0.0f);		
+	//ellipse
+	glPushMatrix();
+		glColor3f(1.0f, 0.0f, 0.0f);
+		float degRad = ellipseAngle * DEG2RAD;
+		float rx = sin(degRad)*ellipseXRadius;
+		float ry = cos(degRad)*ellipseYRadius;
+		float r = sqrtf(rx*rx+ry*ry);
+		glTranslatef(earthDisplacementX-0.8, r, 0.0f);
+		glRotatef(ellipseAngle, 0.0f, 0.0f, 0.1f);
+		drawEllipse(ellipseXRadius, ellipseYRadius);
+	glPopMatrix();
+
+	//2nd ellipse
+	glPushMatrix();
+		glTranslatef(earthDisplacementX+0.8, r, 0.0f);
+		glRotatef(ellipseAngle, 0.0f, 0.0f, 0.1f);
+		drawEllipse(ellipseXRadius, ellipseYRadius);
+	glPopMatrix();
+	//Translation for entire building
+	glTranslatef(2*earthDisplacementX, 2*r, 0.0f);
+
+
+	//building base
+	glBegin(GL_QUADS);
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3f( -1.5f, 0.0f, 0.0f);
+		glVertex3f( 1.5f, 0.0f, 0.0f);
+		glVertex3f( 1.5f, 1.0f, 0.0f);
+		glVertex3f( -1.5f, 1.0f, 0.0f);
 	glEnd();
-	glColor3f(0.0f,1.0f,0.0f);
-	drawCircle(1.0f);
-	drawEllipse(1.0, 0.5);
 
 
-	
+
+
  
 	glutSwapBuffers();
 }
@@ -135,9 +206,9 @@ void keyboard ( unsigned char key, int mousePositionX, int mousePositionY )
 int main(int argc, char **argv) 
 {
 	// set window values
-	win.width = 640;
-	win.height = 480;
-	win.title = "OpenGL/GLUT Example. Visit http://openglsamples.sf.net ";
+	win.width = 1366;
+	win.height = 768;
+	win.title = "Earthquake simulation";
 	win.field_of_view_angle = 45;
 	win.z_near = 1.0f;
 	win.z_far = 500.0f;
