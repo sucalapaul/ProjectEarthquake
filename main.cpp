@@ -38,15 +38,24 @@ glutWindow win;
 
 const float DEG2RAD = 3.14159/180;
 float ellipseAngle = 0;
-float ellipseXRadius = 0.2;
-float ellipseYRadius = 0.1;
+float ellipseXRadius = 0.3;
+float ellipseYRadius = 0.2;
 float earthDisplacementX = 0;
 float increment = 0.003;
 
 float accelerogram[5000];
-float acceleration = 0;
-float velocity = 0;
-float displacement = 0;
+float earthAcceleration = 0;
+float earthVelocity = 0;
+float earthDisplacement = 0;
+
+float baseAcceleration = 0;
+float baseVelocity = 0;
+float baseDisplacement = 0;
+float baseMass = 1000; 
+
+float k = 30000 ;
+float g = 9.81;
+
 
 int simulationStep = 0;
 int accelerogramLength = 0;
@@ -97,40 +106,61 @@ void display()
 	}
 	previousTime = time;
 
+	float ellpsePerimeter = 2*PI*sqrtf(ellipseXRadius*ellipseYRadius);
+
+	earthAcceleration = accelerogram[simulationStep];
+	earthVelocity = earthVelocity + earthAcceleration*0.02;
+	earthDisplacement = earthDisplacement + earthVelocity * 0.02 + earthAcceleration * 0.02 * 0.02 / 2;
+
+	
+	float deltaD = earthDisplacement - baseDisplacement;
+
+	ellipseAngle = (2*PI*deltaD/ellpsePerimeter)/DEG2RAD;
+
+	float elasticComponent = 2 * baseMass * g * sinf(ellipseAngle * DEG2RAD) * cosf(ellipseAngle * DEG2RAD) / baseMass;
+	baseAcceleration = elasticComponent;
+	
+
+	//baseAcceleration = k * deltaD / baseMass;
+	baseVelocity = baseVelocity + baseAcceleration * 0.02;
+	baseDisplacement = baseDisplacement + baseVelocity * 0.02 + baseAcceleration * 0.02 * 0.02 / 2;
+
+	simulationStep++;
+
+	earthDisplacementX = earthDisplacement - deltaD/2;
+
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		     // Clear Screen and Depth Buffer
 	glLoadIdentity();
 	glTranslatef(0.0f,0.0f,-3.0f);			
- 
-	/*
-	 * Triangle code starts here
-	 * 3 verteces, 3 colors.
-	 */
 
-	//ellipseAngle++;
+	//ellipseAngle+=90;
 
 	//MOVEMENT EQUATION
-	earthDisplacementX += increment;
-	if (earthDisplacementX > 0.08 || earthDisplacementX < -0.08)
-	{
-		increment = -increment;
-	}
+	//earthDisplacementX += increment;
+	//if (earthDisplacementX > 0.08 || earthDisplacementX < -0.08)
+	//{
+	//	increment = -increment;
+	//}
 
-	float ellpsePerimeter = 2*PI*sqrtf(ellipseXRadius*ellipseYRadius);
+	
 	// Kepler
 	//$per = 2.0*$pi*sqrt($rA*$rB);
 	//$rot = -2*$pi*$x/$per;
 
-	ellipseAngle = (-2*PI*earthDisplacementX/ellpsePerimeter)/DEG2RAD;
+	
 
 	glTranslatef(0.0f, -0.9f, 0.0f);
 
 	//earth line
-	glBegin(GL_LINES);
-		glColor3f(0.0f, 0.0f, 1.0f);
-		glVertex3f( -1.5f, 0.0f, 0.0f);
-		glVertex3f( 1.5f, 0.0f, 0.0f);
-	glEnd();
+	glPushMatrix();
+		glTranslatef(earthDisplacement, 0.0f, 0.0f);
+		glBegin(GL_LINES);
+			glColor3f(0.0f, 0.0f, 1.0f);
+			glVertex3f( -1.5f, 0.0f, 0.0f);
+			glVertex3f( 1.5f, 0.0f, 0.0f);
+		glEnd();
+	glPopMatrix();
 
 
 	//ellipse
@@ -151,8 +181,10 @@ void display()
 		glRotatef(ellipseAngle, 0.0f, 0.0f, 0.1f);
 		drawEllipse(ellipseXRadius, ellipseYRadius);
 	glPopMatrix();
+
 	//Translation for entire building
-	glTranslatef(2*earthDisplacementX, 2*r, 0.0f);
+	//glTranslatef(2*earthDisplacementX, 2*r, 0.0f);
+	glTranslatef(baseDisplacement, 2*r, 0.0f);
 
 
 	//building base
@@ -212,6 +244,19 @@ int main(int argc, char **argv)
 	win.field_of_view_angle = 45;
 	win.z_near = 1.0f;
 	win.z_far = 500.0f;
+
+		
+	accelerogramLength = 0;
+	string line;
+	if (accelerogramFile.is_open())
+	{
+		while ( std::getline(accelerogramFile, line) )	
+		{
+			accelerogram[accelerogramLength] = atof(line.c_str());
+			accelerogramLength++;
+		}
+		accelerogramFile.close();
+	}
 
 	// initialize and run program
 	glutInit(&argc, argv);                                      // GLUT initialization
