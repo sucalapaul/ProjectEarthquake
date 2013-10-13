@@ -39,8 +39,8 @@ glutWindow win;
 
 const float DEG2RAD = 3.14159/180;
 float ellipseAngle = 0;
-float ellipseXRadius = 0.3;
-float ellipseYRadius = 0.2;
+float ellipseXRadius = 1.0;
+float ellipseYRadius = 0.5;
 float earthDisplacementX = 0;
 float increment = 0.003;
 
@@ -64,6 +64,7 @@ int accelerogramLength = 0;
 unsigned int timeInterval = 20; //ms
 unsigned int previousTime = 0;
 std::ifstream accelerogramFile("accelerograma.txt");
+std::ofstream outputFile("rezultat.csv");
  
 void drawCircle(float radius)
 {
@@ -119,7 +120,12 @@ void display()
 	ellipseAngle = (2*PI*deltaD/ellpsePerimeter)/DEG2RAD;
 
 	float elasticComponent = 2 * baseMass * g * sinf(ellipseAngle * DEG2RAD) * cosf(ellipseAngle * DEG2RAD) / baseMass;
-	baseAcceleration = elasticComponent;
+	float dampingComponent = ( 1000 * (earthVelocity - baseVelocity) ) / baseMass;
+	baseAcceleration = elasticComponent + dampingComponent; 
+
+	//Fi + Ff + Fe = 0;
+	//ma + cv + kd = 0;
+	//a = -cv/m - kd/m;
 	
 
 	//baseAcceleration = k * deltaD / baseMass;
@@ -129,6 +135,16 @@ void display()
 	simulationStep++;
 
 	earthDisplacementX = earthDisplacement - deltaD/2;
+
+	if (simulationStep < accelerogramLength)
+	{
+		outputFile << earthAcceleration << "," << baseAcceleration << "\r";
+	} 
+	else 
+	{
+		outputFile.close();
+		exit(0);
+	}
 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		     // Clear Screen and Depth Buffer
