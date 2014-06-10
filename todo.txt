@@ -1,0 +1,8 @@
+grafice pentru urmatoarele situatii:
+	inaltimea elipsoidului de mica 0.4
+	mare 0.8, 1, 1.2
+
+
+grafice cu accelerograma, deplasari si viteze
+
+pentru 3 cutremure cunoscute
