@@ -39,8 +39,8 @@ glutWindow win;
 
 const float DEG2RAD = 3.14159/180;
 float ellipseAngle = 0;
-float ellipseXRadius = 0.5;
-float ellipseYRadius = 0.2;
+float ellipseXRadius = 0.4;
+float ellipseYRadius = 0.15;
 float earthDisplacementX = 0;
 float increment = 0.003;
 
@@ -52,10 +52,12 @@ float earthDisplacement = 0;
 float baseAcceleration = 0;
 float baseVelocity = 0;
 float baseDisplacement = 0;
-float baseMass = 100000; 
+float baseMass = 27000/45 ; 
 
 float k = 30000 ;
 float g = 9.81;
+
+//float raport = ellipseXRadius / ellipseYRadius;
 
 
 int simulationStep = 0;
@@ -102,6 +104,9 @@ void nop()
 void display() 
 {
 
+	float raport = ellipseXRadius / ellipseYRadius;
+	//baseMass = 5000 * 2;
+
 	unsigned int time = glutGet(GLUT_ELAPSED_TIME);
 	if (time < previousTime + timeInterval){
 		return;
@@ -121,7 +126,7 @@ void display()
 
 	float elasticComponent = 2 * baseMass * g * sinf(ellipseAngle * DEG2RAD) * cosf(ellipseAngle * DEG2RAD) / baseMass;
 	float dampingComponent = ( 10000 * (earthVelocity - baseVelocity) ) / baseMass;
-	baseAcceleration =  dampingComponent; //elasticComponent
+	baseAcceleration = dampingComponent; //elasticComponent;
 
 	//Fi + Ff + Fe = 0;
 	//ma + cv + kd = 0;
@@ -138,7 +143,7 @@ void display()
 
 	if (simulationStep < accelerogramLength)
 	{
-		outputFile << earthAcceleration << "," << baseAcceleration << "\r";
+		outputFile << simulationStep * 0.02 << "," << earthAcceleration << "," << baseAcceleration  << "," << baseVelocity  << "," << baseDisplacement << "\r";
 	} 
 	else 
 	{
