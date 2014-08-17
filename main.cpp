@@ -40,7 +40,7 @@ glutWindow win;
 const float DEG2RAD = 3.14159/180;
 float ellipseAngle = 0;
 float ellipseXRadius = 0.4;
-float ellipseYRadius = 0.15;
+float ellipseYRadius = 0.2;
 float earthDisplacementX = 0;
 float increment = 0.003;
 
@@ -52,7 +52,22 @@ float earthDisplacement = 0;
 float baseAcceleration = 0;
 float baseVelocity = 0;
 float baseDisplacement = 0;
-float baseMass = 27000/45 ; 
+//float baseMass = 27000/45 ; 
+float baseMass = 7000; 
+
+
+
+//10000 - 0.2,0.4		2.0
+//15000 - 0.2,0.5		2.5
+//19000 - 0.2,0.75		3.75
+
+//16000 - 0.15,0.4		2.66
+//17000 - 0.15,0.5		3.33
+//25000 - 0.15,0.75		5
+
+//oscilatie proprie
+//0.15, 0.4 - 10000
+//0.2, 0.4 - 8000
 
 float k = 30000 ;
 float g = 9.81;
@@ -122,11 +137,11 @@ void display()
 	
 	float deltaD = earthDisplacement - baseDisplacement;
 
-	ellipseAngle = (2*PI*deltaD/ellpsePerimeter)/DEG2RAD;
-
+	ellipseAngle = (2*PI*deltaD/ellpsePerimeter)/DEG2RAD; 
+							//1.7f - pentru oscilatie 0.2, 0.4
 	float elasticComponent = 2 * baseMass * g * sinf(ellipseAngle * DEG2RAD) * cosf(ellipseAngle * DEG2RAD) / baseMass;
 	float dampingComponent = ( 10000 * (earthVelocity - baseVelocity) ) / baseMass;
-	baseAcceleration = dampingComponent; //elasticComponent;
+	baseAcceleration = elasticComponent;//dampingComponent; //elasticComponent;
 
 	//Fi + Ff + Fe = 0;
 	//ma + cv + kd = 0;
